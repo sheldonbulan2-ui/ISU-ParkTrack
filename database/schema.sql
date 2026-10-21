@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS parking_slots (
   slot_number VARCHAR(12) NOT NULL UNIQUE,
   row_position SMALLINT UNSIGNED NOT NULL DEFAULT 1,
   column_position SMALLINT UNSIGNED NOT NULL DEFAULT 1,
-  status ENUM('available','pending','occupied','restricted') NOT NULL DEFAULT 'available',
+  status ENUM('available','pending','occupied','restricted','reserved') NOT NULL DEFAULT 'available',
   is_enabled TINYINT(1) NOT NULL DEFAULT 1,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
