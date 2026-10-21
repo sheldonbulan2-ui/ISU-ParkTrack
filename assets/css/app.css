@@ -994,6 +994,29 @@ input:-webkit-autofill:active {
 /* --------------------------------------------------------------------------
    ADMIN WEB APP CONSOLE
    -------------------------------------------------------------------------- */
+/* Student Workspace Shell */
+.student-shell {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 24px 20px 48px;
+  min-height: calc(100vh - 60px);
+}
+
+.student-main-viewport {
+  min-width: 0;
+  width: 100%;
+}
+
+.student-top-bar {
+  margin-bottom: 20px;
+}
+
+.student-top-bar h1 {
+  font-size: 26px;
+  margin: 0;
+  color: var(--text-primary);
+}
+
 .admin-shell {
   display: grid;
   grid-template-columns: 275px minmax(0, 1fr);
@@ -1560,6 +1583,17 @@ tbody tr:hover {
 
   .app-sidebar-panel {
     position: static;
+  }
+
+  /* Student Workspace Shell Responsive */
+  .student-shell {
+    padding: 14px 12px 32px;
+  }
+  .student-top-bar {
+    margin-bottom: 14px;
+  }
+  .student-top-bar h1 {
+    font-size: 20px;
   }
 
   .admin-shell {

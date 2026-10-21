@@ -142,6 +142,18 @@ async function refresh(isManual = false) {
       adminName = 'Administrator';
     }
 
+    // CRITICAL BUG FIX FOR MOBILE KEYBOARD DISMISSAL:
+    // If user is focused on or typing into an input/textarea (like Change Password or Slot inputs),
+    // or if a modal is open, or on the Settings page: update data in memory, but DO NOT wipe/re-render the DOM!
+    const activeEl = document.activeElement;
+    const isTyping = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.isContentEditable);
+    const hasModal = !!document.querySelector('.modal-backdrop');
+
+    if (isTyping || hasModal || (isAdmin && page === 'settings')) {
+      if (isManual) toast('Data refreshed with live server.');
+      return;
+    }
+
     if (page === 'student') {
       renderStudent();
     } else if (isAdmin && page !== 'home' && page !== 'login') {
@@ -332,114 +344,124 @@ function renderStudent() {
       </div>
     </header>
 
-    <!-- Student App Workspace Grid -->
-    <div class="app-container">
-      <!-- Left Sidebar Control Panel -->
-      <aside class="app-sidebar-panel">
-        <!-- Live Capacity Card -->
-        <div class="app-card capacity-card">
-          <h3>Live Vehicle Slot Status</h3>
-          <div class="capacity-number-row">
-            <span class="capacity-number">${avail}</span>
-            <span class="capacity-total">/ ${total} Available Slots</span>
-          </div>
-          <div style="font-size:12px; color:#a7f3d0; margin-bottom:4px;">
-            ${pctAvail}% Free Capacity Right Now
+    <!-- Student App Workspace (Clean & Symmetrical Layout) -->
+    <div class="student-shell">
+      <main class="student-main-viewport">
+        <!-- Top Eyebrow & Title -->
+        <div class="student-top-bar">
+          <p class="eyebrow" style="color:var(--isu-primary-light);">STUDENT PARKING PORTAL</p>
+          <h1>Campus Vehicle Slots</h1>
+          <p class="muted" style="margin:2px 0 0; font-size:13px;">Pumili ng bakanteng berdeng slot para mag-park o mag-reserve.</p>
+        </div>
+
+        ${activeBannerHtml}
+
+        <!-- 4 Stat Metric Cards (Same clean 2x2 grid as Admin) -->
+        <div class="admin-stats-grid" style="margin-bottom:16px;">
+          <div class="stat-box">
+            <div class="row between">
+              <h3>Total Slots</h3>
+              ${icon('grid-3x3', 18)}
+            </div>
+            <strong>${total}</strong>
           </div>
 
-          <div class="capacity-progress-track">
-            <div class="capacity-progress-fill" style="width: ${pctAvail}%;"></div>
+          <div class="stat-box" style="border-left: 3.5px solid #22c55e;">
+            <div class="row between">
+              <h3 style="color:#15803d;">Available</h3>
+              ${icon('check-circle', 18)}
+            </div>
+            <strong style="color:#16a34a;">${avail}</strong>
           </div>
 
-          <div class="capacity-metrics-grid">
-            <div class="capacity-metric-pill">
-              <span>Occupied</span>
-              <strong>${occ}</strong>
+          <div class="stat-box" style="border-left: 3.5px solid #ef4444;">
+            <div class="row between">
+              <h3 style="color:#b91c1c;">Occupied</h3>
+              ${icon('bike', 18)}
             </div>
-            <div class="capacity-metric-pill">
-              <span>Reserved</span>
-              <strong>${resCount}</strong>
+            <strong style="color:#dc2626;">${occ}</strong>
+          </div>
+
+          <div class="stat-box" style="border-left: 3.5px solid #3b82f6;">
+            <div class="row between">
+              <h3 style="color:#1d4ed8;">Reserved</h3>
+              ${icon('bookmark', 18)}
             </div>
-            <div class="capacity-metric-pill">
-              <span>Total Slots</span>
-              <strong>${total}</strong>
-            </div>
+            <strong style="color:#2563eb;">${resCount}</strong>
           </div>
         </div>
 
-        <!-- 3-Step Parking Guide -->
-        <div class="app-card">
-          <h3 style="margin-bottom:10px; display:flex; align-items:center; gap:8px;">
-            ${icon('help-circle', 18)} How to Park, Reserve & Leave
+        <!-- Interactive Parking Map Card -->
+        <div class="app-card" style="padding:16px; margin-bottom:16px;">
+          <div class="workspace-toolbar" style="margin-bottom:12px;">
+            <div class="toolbar-title">
+              <h2 style="font-size:17px; margin-bottom:2px;">Parking Lot Map (Zone A)</h2>
+              <p class="muted" style="font-size:12px; margin:0;">I-tap ang berdeng slot para mag-park o mag-reserve, o i-tap ang occupied slot kung aalis na.</p>
+            </div>
+
+            <!-- Filter Pills -->
+            <div class="filter-pills" id="student-filters" style="margin-top:10px;">
+              <button class="filter-pill ${currentStudentFilter === 'all' ? 'active' : ''}" data-filter="all">
+                All (${slots.length})
+              </button>
+              <button class="filter-pill ${currentStudentFilter === 'available' ? 'active' : ''}" data-filter="available">
+                Available (${avail})
+              </button>
+              <button class="filter-pill ${currentStudentFilter === 'occupied' ? 'active' : ''}" data-filter="occupied">
+                Occupied (${occ})
+              </button>
+              <button class="filter-pill ${currentStudentFilter === 'reserved' ? 'active' : ''}" data-filter="reserved">
+                Reserved (${resCount})
+              </button>
+            </div>
+          </div>
+
+          <!-- Color Legend -->
+          <div class="legend-row" style="margin-bottom:12px; font-size:11.5px;">
+            <span class="legend-item"><i class="legend-dot" style="background:var(--slot-avail-indicator)"></i> Available (${avail})</span>
+            <span class="legend-item"><i class="legend-dot" style="background:var(--slot-occ-indicator)"></i> Occupied (${occ})</span>
+            <span class="legend-item"><i class="legend-dot" style="background:#3b82f6;"></i> Reserved (${resCount})</span>
+            <span class="legend-item"><i class="legend-dot" style="background:var(--slot-dis-indicator)"></i> Restricted (${Number(stats.restricted || 0)})</span>
+          </div>
+
+          <!-- Parking Grid -->
+          <div id="student-map-container">
+            ${renderMapGrid(false, currentStudentFilter)}
+          </div>
+        </div>
+
+        <!-- 3-Step Guide (Below the map, clean and helpful) -->
+        <div class="app-card" style="margin-bottom:16px; padding:16px;">
+          <h3 style="margin-bottom:12px; font-size:14px; display:flex; align-items:center; gap:8px; color:var(--isu-primary);">
+            ${icon('help-circle', 18)} Gabay sa Pag-park, Reserve at Pag-alis
           </h3>
           <ul class="steps-list">
             <li class="step-item">
               <span class="step-num">1</span>
               <div class="step-text">
-                <strong>Find an open slot</strong>
-                <p>Piliin ang bakanteng berdeng slot sa mapa para sa iyong sasakyan.</p>
+                <strong>Maghanap ng Bakanteng Slot</strong>
+                <p>Piliin ang berdeng slot sa mapa na nais mong paradahan.</p>
               </div>
             </li>
             <li class="step-item">
               <span class="step-num">2</span>
               <div class="step-text">
-                <strong>Park Now or Reserve</strong>
-                <p>Maaari kang mag-park agad gamit ang photo check-in, o i-reserve ang pwesto bago dumating sa campus!</p>
+                <strong>Pumili: Mag-park Na o I-reserve</strong>
+                <p>Kumuha agad ng litrato ng nakaparadang motor gamit ang camera, o i-hold muna ang pwesto kung paparating ka pa lamang.</p>
               </div>
             </li>
             <li class="step-item">
               <span class="step-num">3</span>
               <div class="step-text">
-                <strong>Tap Leave when exiting</strong>
-                <p>Kapag aalis ka na, i-tap ang iyong slot at pindutin ang Leave para magamit muli ng iba!</p>
+                <strong>I-tap ang Leave Kapag Aalis Na</strong>
+                <p>Kapag aalis ka na, i-tap muli ang iyong slot at pindutin ang Leave upang maging bakante ito sa susunod na estudyante.</p>
               </div>
             </li>
           </ul>
         </div>
 
-        <div style="padding:12px; background:var(--bg-surface-subtle); border-radius:var(--radius-md); font-size:12px; color:var(--text-muted); border:1px solid var(--border-light);">
-          🔒 Instant check-in & reservation system. Ligtas na nakaimbak para sa maayos na pamamahala ng campus parking.
-        </div>
-      </aside>
-
-      <!-- Main Interactive Parking Workspace -->
-      <main class="app-workspace">
-        ${activeBannerHtml}
-
-        <div class="workspace-toolbar">
-          <div class="toolbar-title">
-            <h2>Campus Vehicle Parking (Zone A)</h2>
-            <p class="muted">Piliin ang berdeng slot para mag-park o mag-reserve, o i-tap ang occupied slot kung aalis na.</p>
-          </div>
-
-          <!-- Filter Pills -->
-          <div class="filter-pills" id="student-filters">
-            <button class="filter-pill ${currentStudentFilter === 'all' ? 'active' : ''}" data-filter="all">
-              All Slots (${slots.length})
-            </button>
-            <button class="filter-pill ${currentStudentFilter === 'available' ? 'active' : ''}" data-filter="available">
-              Available (${avail})
-            </button>
-            <button class="filter-pill ${currentStudentFilter === 'occupied' ? 'active' : ''}" data-filter="occupied">
-              Occupied (${occ})
-            </button>
-            <button class="filter-pill ${currentStudentFilter === 'reserved' ? 'active' : ''}" data-filter="reserved">
-              Reserved (${resCount})
-            </button>
-          </div>
-        </div>
-
-        <!-- Legend -->
-        <div class="legend-row">
-          <span class="legend-item"><i class="legend-dot" style="background:var(--slot-avail-indicator)"></i> Available (${avail})</span>
-          <span class="legend-item"><i class="legend-dot" style="background:var(--slot-occ-indicator)"></i> Occupied (${occ})</span>
-          <span class="legend-item"><i class="legend-dot" style="background:#3b82f6;"></i> Reserved (${resCount})</span>
-          <span class="legend-item"><i class="legend-dot" style="background:var(--slot-dis-indicator)"></i> Restricted (${Number(stats.restricted || 0)})</span>
-        </div>
-
-        <!-- Parking Grid -->
-        <div id="student-map-container">
-          ${renderMapGrid(false, currentStudentFilter)}
+        <div style="padding:12px 16px; background:var(--bg-surface-subtle); border-radius:var(--radius-md); font-size:12px; color:var(--text-muted); border:1px solid var(--border-light); text-align:center; margin-bottom:24px;">
+          🔒 Ganap na anonymous — walang student ID, plate number, o personal data na kinokolekta.
         </div>
       </main>
     </div>
