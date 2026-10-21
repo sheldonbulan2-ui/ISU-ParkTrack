@@ -23,7 +23,7 @@ require_once __DIR__ . '/includes/security.php';
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400..700;1,9..40,400..700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/app.css?v=20261021-mobile-v4">
+  <link rel="stylesheet" href="assets/css/app.css?v=20261022-realtime-v5">
   <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
@@ -55,6 +55,6 @@ require_once __DIR__ . '/includes/security.php';
       });
     }
   </script>
-  <script src="assets/js/app.js?v=20261021-mobile-v4" defer></script>
+  <script src="assets/js/app.js?v=20261022-realtime-v5" defer></script>
 </body>
 </html>

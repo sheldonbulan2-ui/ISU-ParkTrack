@@ -101,7 +101,7 @@ try {
     if ($action==='records' && $method==='GET') {
         require_admin(); $status=(string)($_GET['status']??''); $sql="SELECT r.*,s.slot_number FROM parking_records r JOIN parking_slots s ON s.id=r.parking_slot_id"; $params=[];
         if (in_array($status,['pending','approved','rejected','completed','reserved'],true)) {$sql.=' WHERE r.submission_status=?';$params[]=$status;}
-        $sql.=' ORDER BY r.submitted_at DESC LIMIT 500'; $q=$pdo->prepare($sql);$q->execute($params);json_response(['records'=>$q->fetchAll()]);
+        $sql.=' ORDER BY r.id DESC LIMIT 500'; $q=$pdo->prepare($sql);$q->execute($params);json_response(['records'=>$q->fetchAll()]);
     }
     if ($action==='change-password' && $method==='POST') {
         $admin=require_admin(); require_csrf(); $d=request_data();
@@ -184,7 +184,30 @@ try {
         elseif(in_array($op,['disable','enable','restrict','unrestrict','reserve','unreserve'],true)){$id=(int)($d['id']??0);$q=$pdo->prepare('SELECT status FROM parking_slots WHERE id=? FOR UPDATE');$pdo->beginTransaction();$q->execute([$id]);$s=$q->fetchColumn();if(!$s){$pdo->rollBack();json_response(['error'=>'Slot not found.'],404);}if(in_array($op,['disable','restrict'],true)&&in_array($s,['pending','occupied'],true)){$pdo->rollBack();json_response(['error'=>'Active slots cannot be disabled or restricted.'],409);}$new=match($op){'restrict'=>'restricted','unrestrict'=>'available','reserve'=>'reserved','unreserve'=>'available',default=>$s};$enabled=match($op){'disable'=>0,'enable'=>1,default=>1};$pdo->prepare('UPDATE parking_slots SET status=?,is_enabled=?,updated_at=NOW() WHERE id=?')->execute([$new,$enabled,$id]);audit($pdo,$admin,'slot_'.$op,null,$id);$pdo->commit();}
         else json_response(['error'=>'Unknown slot action.'],422);json_response(['ok'=>true]);
     }
-    if ($action==='export' && $method==='GET') {require_admin();header('Content-Type:text/csv; charset=utf-8');header('Content-Disposition: attachment; filename="parking-history.csv"');$out=fopen('php://output','w');fputcsv($out,['Reference (Device)','Slot','Status','IN (Time In)','OUT (Time Out)','Remarks']);foreach($pdo->query('SELECT r.reference_number,s.slot_number,r.submission_status,COALESCE(r.approved_at,r.submitted_at) as time_in,r.exited_at,r.rejection_reason FROM parking_records r JOIN parking_slots s ON s.id=r.parking_slot_id ORDER BY r.submitted_at DESC') as $r)fputcsv($out,$r);exit;}
+    if ($action==='export' && $method==='GET') {
+        require_admin();
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="parking-history-audit.csv"');
+        $out = fopen('php://output', 'w');
+        fputcsv($out, ['Reference (Device)', 'Slot Number', 'Status', 'Time IN', 'Time OUT', 'Remarks / Notes']);
+        $sql = "SELECT r.reference_number, s.slot_number,
+                CASE 
+                    WHEN r.exited_at IS NULL AND r.submission_status='approved' THEN 'Occupied (Parked)'
+                    WHEN r.exited_at IS NULL AND r.submission_status='reserved' THEN 'Reserved'
+                    WHEN r.exited_at IS NOT NULL THEN 'Departed (Completed)'
+                    ELSE r.submission_status
+                END as status_label,
+                COALESCE(r.approved_at, r.submitted_at) as time_in,
+                r.exited_at,
+                r.rejection_reason
+                FROM parking_records r
+                JOIN parking_slots s ON s.id=r.parking_slot_id
+                ORDER BY r.id DESC";
+        foreach($pdo->query($sql) as $r) {
+            fputcsv($out, $r);
+        }
+        exit;
+    }
     json_response(['error'=>'Unknown API endpoint.'],404);
 } catch(Throwable $e) { error_log((string)$e); if(isset($pdo)&&$pdo->inTransaction())$pdo->rollBack(); json_response(['error'=>'The request could not be completed. Check the database connection and try again.'],500); }
 function admin_active(): bool { start_secure_session();return !empty($_SESSION['admin_id']); }

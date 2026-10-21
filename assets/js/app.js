@@ -134,30 +134,85 @@ async function api(action, options = {}) {
 // Polling and live sync
 async function refresh(isManual = false) {
   try {
-    const [slotsData, statsData] = await Promise.all([api('slots'), api('stats')]);
+    const fetches = [api('slots'), api('stats')];
+    if (isAdmin && (page === 'dashboard' || page === 'history')) {
+      fetches.push(api('records'));
+    }
+
+    const results = await Promise.all(fetches);
+    const slotsData = results[0];
+    const statsData = results[1];
     slots = slotsData.slots || [];
     stats = statsData || {};
     if (slotsData.admin && !isAdmin) {
       isAdmin = true;
       adminName = 'Administrator';
     }
+    if (results[2] && results[2].records) {
+      records = results[2].records;
+    }
 
-    // CRITICAL BUG FIX FOR MOBILE KEYBOARD DISMISSAL:
-    // If user is focused on or typing into an input/textarea (like Change Password or Slot inputs),
-    // or if a modal is open, or on the Settings page: update data in memory, but DO NOT wipe/re-render the DOM!
-    const activeEl = document.activeElement;
-    const isTyping = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.isContentEditable);
     const hasModal = !!document.querySelector('.modal-backdrop');
 
-    if (isTyping || hasModal || (isAdmin && page === 'settings')) {
+    // Protect Settings page inputs (like password changes) from DOM re-rendering
+    if (isAdmin && page === 'settings') {
       if (isManual) toast('Data refreshed with live server.');
       return;
     }
 
     if (page === 'student') {
-      renderStudent();
+      if (!hasModal) renderStudent();
     } else if (isAdmin && page !== 'home' && page !== 'login') {
-      renderAdmin();
+      const hasShell = !!document.querySelector('.admin-shell');
+
+      // If shell not mounted yet or modal is open, use full render when safe
+      if (!hasShell || hasModal) {
+        if (!hasModal) await renderAdmin();
+      } else {
+        // High-performance, zero-flicker live in-place sync for Admin Console:
+        // Update top stats grid on all pages where it exists
+        const statsEl = document.querySelector('#admin-stats-container');
+        if (statsEl) statsEl.innerHTML = adminStatsBar();
+
+        if (page === 'dashboard') {
+          const mapEl = document.querySelector('#admin-map-container');
+          if (mapEl) mapEl.innerHTML = renderMapGrid(true);
+
+          const recEl = document.querySelector('#admin-recent-records-container');
+          if (recEl) recEl.innerHTML = historyTable(records.slice(0, 5));
+
+          wireAdminEvents();
+          updateIcons();
+        } else if (page === 'map') {
+          const mapEl = document.querySelector('#admin-map-container');
+          if (mapEl) mapEl.innerHTML = renderMapGrid(true);
+
+          wireAdminEvents();
+          updateIcons();
+        } else if (page === 'history') {
+          const histTableEl = document.querySelector('#history-table-container');
+          if (histTableEl) {
+            histTableEl.innerHTML = historyTable(records);
+            wireAdminEvents();
+            updateIcons();
+
+            // Re-apply live search filter if admin has typed anything in search box
+            const searchInput = document.querySelector('#history-search');
+            if (searchInput && searchInput.value.trim()) {
+              const q = searchInput.value.trim().toLowerCase();
+              document.querySelectorAll('.history-day-section').forEach(sec => {
+                let matchCount = 0;
+                sec.querySelectorAll('tbody tr').forEach(tr => {
+                  const match = (tr.dataset.search || '').includes(q);
+                  tr.hidden = !match;
+                  if (match) matchCount++;
+                });
+                sec.hidden = (matchCount === 0);
+              });
+            }
+          }
+        }
+      }
     } else if (page === 'home') {
       updateHomeAvailability();
     }
@@ -188,7 +243,7 @@ function startPolling() {
   clearInterval(poller);
   poller = setInterval(() => {
     if (page !== 'login') refresh();
-  }, 7000);
+  }, 3500);
 }
 
 const statusLabels = {
@@ -1285,7 +1340,7 @@ async function renderAdmin() {
     const recentRecords = records.slice(0, 5);
 
     bodyHtml = `
-      ${adminStatsBar()}
+      <div id="admin-stats-container">${adminStatsBar()}</div>
 
       <!-- Campus Live Map Section -->
       <section class="app-card" style="margin-bottom:20px;">
@@ -1298,7 +1353,7 @@ async function renderAdmin() {
             Full Map View ${icon('maximize-2', 14)}
           </button>
         </div>
-        ${renderMapGrid(true)}
+        <div id="admin-map-container">${renderMapGrid(true)}</div>
       </section>
 
       <!-- Recent Parking Activity -->
@@ -1313,7 +1368,7 @@ async function renderAdmin() {
           </button>
         </div>
 
-        ${historyTable(recentRecords)}
+        <div id="admin-recent-records-container">${historyTable(recentRecords)}</div>
       </section>
     `;
   }
@@ -1321,7 +1376,7 @@ async function renderAdmin() {
   // 2. PARKING MAP
   else if (page === 'map') {
     bodyHtml = `
-      ${adminStatsBar()}
+      <div id="admin-stats-container">${adminStatsBar()}</div>
       <section class="app-card">
         <div class="row between" style="margin-bottom:16px;">
           <div>
@@ -1329,7 +1384,7 @@ async function renderAdmin() {
             <p class="muted">Click any vehicle slot to inspect photos or log vehicle departures.</p>
           </div>
         </div>
-        ${renderMapGrid(true)}
+        <div id="admin-map-container">${renderMapGrid(true)}</div>
       </section>
     `;
   }
@@ -1337,11 +1392,12 @@ async function renderAdmin() {
   // 3. HISTORY & AUDIT
   else if (page === 'history') {
     bodyHtml = `
+      <div id="admin-stats-container">${adminStatsBar()}</div>
       <section class="app-card">
         <div class="row between" style="margin-bottom:16px; flex-wrap:wrap; gap:12px;">
           <div>
             <h2>Vehicle Parking Records & History</h2>
-            <p class="muted">Searchable audit trail of vehicle check-ins, reservations, and departures.</p>
+            <p class="muted">Searchable audit trail of vehicle check-ins, reservations, and departures in real-time.</p>
           </div>
           <a class="button soft small" href="api/index.php?action=export">
             ${icon('download', 15)} Export CSV
@@ -1349,10 +1405,10 @@ async function renderAdmin() {
         </div>
 
         <div style="margin-bottom:16px;">
-          <input id="history-search" class="inline-input" placeholder="Search by reference code or slot (e.g. P-01)…" style="max-width:360px;">
+          <input id="history-search" class="inline-input" placeholder="Search by reference code or slot (e.g. P-01, occupied)…" style="max-width:360px;">
         </div>
 
-        ${historyTable(records)}
+        <div id="history-table-container">${historyTable(records)}</div>
       </section>
     `;
   }
@@ -1647,6 +1703,8 @@ function historyTable(rows) {
 
   return sortedDays.map(dayKey => {
     const dayRows = groups[dayKey];
+    const activeCount = dayRows.filter(x => !x.exited_at && (x.submission_status === 'approved' || x.submission_status === 'reserved')).length;
+
     return `
       <section class="history-day-section" style="margin-bottom:24px;">
         <div class="history-day-header" style="display:flex; align-items:center; justify-content:space-between; background:linear-gradient(135deg, #f0fdf4, #f8fafc); border:1px solid #bbf7d0; border-radius:var(--radius-md); padding:10px 14px; margin-bottom:10px;">
@@ -1659,9 +1717,16 @@ function historyTable(rows) {
               <small style="color:#64748b; font-size:11.5px;">Petsa: ${esc(dayKey)}</small>
             </div>
           </div>
-          <span class="badge available" style="font-weight:700;">
-            ${dayRows.length} ${dayRows.length === 1 ? 'Record' : 'Records'}
-          </span>
+          <div style="display:flex; align-items:center; gap:6px;">
+            ${activeCount > 0 ? `
+              <span class="badge occupied" style="font-weight:700; font-size:11.5px;">
+                ${activeCount} Active Now
+              </span>
+            ` : ''}
+            <span class="badge available" style="font-weight:700;">
+              ${dayRows.length} ${dayRows.length === 1 ? 'Record' : 'Records'}
+            </span>
+          </div>
         </div>
 
         <div class="table-wrap">
@@ -1679,30 +1744,80 @@ function historyTable(rows) {
             </thead>
             <tbody>
               ${dayRows.map(r => {
-                const isActive = (r.submission_status === 'approved' || r.submission_status === 'reserved') && !r.exited_at;
+                const isActivelyOccupied = (r.submission_status === 'approved') && !r.exited_at;
+                const isActivelyReserved = (r.submission_status === 'reserved') && !r.exited_at;
+                const isActive = (isActivelyOccupied || isActivelyReserved);
+
+                let statusBadgeHtml = '';
+                let statusLabel = '';
+                if (isActivelyOccupied) {
+                  statusBadgeHtml = `<span class="badge occupied" style="font-weight:700;">Occupied</span>`;
+                  statusLabel = 'Occupied (Naka-park)';
+                } else if (isActivelyReserved) {
+                  statusBadgeHtml = `<span class="badge reserved" style="font-weight:700;">Reserved</span>`;
+                  statusLabel = 'Reserved (Naka-hold)';
+                } else if (r.submission_status === 'pending') {
+                  statusBadgeHtml = `<span class="badge pending" style="font-weight:700;">In Review</span>`;
+                  statusLabel = 'In Review';
+                } else if (r.rejection_reason && r.rejection_reason.toLowerCase().includes('cancel')) {
+                  statusBadgeHtml = `<span class="badge rejected" style="font-weight:600;">Cancelled</span>`;
+                  statusLabel = 'Cancelled';
+                } else {
+                  statusBadgeHtml = `<span class="badge available" style="font-weight:600;">Departed</span>`;
+                  statusLabel = 'Departed / Completed';
+                }
+
                 const timeIn = r.approved_at || r.submitted_at || '—';
                 const timeOut = r.exited_at || '—';
+
+                const searchTokens = [
+                  r.reference_number,
+                  r.slot_number,
+                  statusLabel,
+                  r.submission_status,
+                  isActivelyOccupied ? 'occupied naka-park nakapark active kasalukuyan' : '',
+                  isActivelyReserved ? 'reserved naka-reserve nakareserve hold' : '',
+                  r.exited_at ? 'departed completed umalis tapos' : '',
+                  dayKey
+                ].join(' ').toLowerCase();
+
+                let actionHtml = '';
+                if (isActivelyOccupied) {
+                  actionHtml = `
+                    <button class="button success small" data-free-slot="${r.parking_slot_id}" data-slot-num="${esc(r.slot_number)}" style="padding:4px 9px; font-size:11.5px; font-weight:600;" title="Gawing Available ang slot na ito (Umalis na ang motor)">
+                      ${icon('check-circle', 13)} I-available
+                    </button>
+                  `;
+                } else if (isActivelyReserved) {
+                  actionHtml = `
+                    <button class="button ghost small" data-free-slot="${r.parking_slot_id}" data-slot-num="${esc(r.slot_number)}" style="padding:4px 9px; font-size:11.5px; color:#dc2626; border-color:#fca5a5; font-weight:600;" title="Kanselahin ang Reservation">
+                      ${icon('x-circle', 13)} Kanselahin
+                    </button>
+                  `;
+                } else {
+                  actionHtml = `<span style="font-size:12px; color:#94a3b8;">Tapos na</span>`;
+                }
+
+                let photoHtml = '';
+                if (r.motorcycle_photo_path) {
+                  photoHtml = `
+                    <button class="button ghost small" data-photo="${r.id}" style="padding:4px 9px; font-size:11.5px;" title="Tingnan ang photo">
+                      ${icon('image', 14)} View
+                    </button>
+                  `;
+                } else {
+                  photoHtml = `<span style="font-size:11px; color:#94a3b8; font-style:italic;">No photo</span>`;
+                }
+
                 return `
-                  <tr data-search="${esc((r.reference_number + ' ' + r.slot_number + ' ' + r.submission_status + ' ' + dayKey).toLowerCase())}">
+                  <tr data-search="${esc(searchTokens)}">
                     <td><strong>${esc(r.reference_number)}</strong></td>
                     <td><b>${esc(r.slot_number)}</b></td>
-                    <td><span class="badge ${esc(r.submission_status)}">${esc(r.submission_status)}</span></td>
+                    <td>${statusBadgeHtml}</td>
                     <td style="color:#166534; font-weight:600;">${esc(timeIn)}</td>
                     <td style="color:${r.exited_at ? '#dc2626' : '#94a3b8'}; font-weight:${r.exited_at ? '600' : '400'};">${esc(timeOut)}</td>
-                    <td>
-                      <button class="button ghost small" data-photo="${r.id}" title="Tingnan ang photo">
-                        ${icon('image', 14)} View
-                      </button>
-                    </td>
-                    <td>
-                      ${isActive ? `
-                        <button class="button success small" data-free-slot="${r.parking_slot_id}" data-slot-num="${esc(r.slot_number)}" style="padding:4px 8px; font-size:11.5px;" title="Gawing Available ang slot na ito">
-                          ${icon('check-circle', 13)} I-available
-                        </button>
-                      ` : `
-                        <span style="font-size:12px; color:#94a3b8;">Tapos na</span>
-                      `}
-                    </td>
+                    <td>${photoHtml}</td>
+                    <td>${actionHtml}</td>
                   </tr>
                 `;
               }).join('')}
@@ -1729,18 +1844,21 @@ function wireAdminEvents() {
 
   const search = document.querySelector('#history-search');
   if (search) {
-    search.oninput = () => {
-      const q = search.value.toLowerCase();
+    const doFilter = () => {
+      const q = search.value.toLowerCase().trim();
       document.querySelectorAll('.history-day-section').forEach(sec => {
         let matchCount = 0;
         sec.querySelectorAll('tbody tr').forEach(tr => {
-          const match = tr.dataset.search.includes(q);
+          const match = (tr.dataset.search || '').includes(q);
           tr.hidden = !match;
           if (match) matchCount++;
         });
         sec.hidden = (matchCount === 0);
       });
     };
+    search.oninput = doFilter;
+    search.onkeyup = doFilter;
+    search.onchange = doFilter;
   }
 
   // Quick Action to free slot directly from history table
