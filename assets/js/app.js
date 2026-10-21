@@ -318,9 +318,9 @@ function renderStudent() {
       <div class="app-header-left">
         <div class="brand">
           <img class="brand-logo" src="assets/images/isu-logo.png" alt="ISU Seal">
-          <div>
-            ISU Motorcycle Parking
-            <small>San Mariano Campus · Student App</small>
+          <div class="brand-text">
+            <span class="brand-title">ISU Motorcycle Parking</span>
+            <small class="brand-sub">San Mariano Campus</small>
           </div>
         </div>
       </div>
@@ -329,10 +329,6 @@ function renderStudent() {
         <button class="button soft small pwa-install-btn" id="student-install-btn" style="display:none;" title="I-install ang App sa Phone">
           ${icon('smartphone', 14)} <span class="hide-mobile">I-install App</span>
         </button>
-        <div class="live-badge">
-          <span class="live-dot"></span>
-          <span>Live Sync</span>
-        </div>
         <button class="button ghost small" id="student-to-admin">
           ${icon('shield-check', 15)} Staff Login
         </button>
@@ -1134,22 +1130,22 @@ function adminShell(content, title) {
       <div class="app-header-left">
         <div class="brand">
           <img class="brand-logo" src="assets/images/isu-logo.png" alt="ISU Logo">
-          <div>
-            ISU Motorcycle Parking
-            <small>Administration Web App</small>
+          <div class="brand-text">
+            <span class="brand-title">ISU Motorcycle Parking</span>
+            <small class="brand-sub">Admin Console</small>
           </div>
         </div>
       </div>
 
       <div class="app-header-right">
         <button class="button soft small pwa-install-btn" id="admin-install-btn" style="display:none;" title="I-install ang App sa Phone">
-          ${icon('smartphone', 14)} <span class="hide-mobile">I-install App</span>
+          ${icon('smartphone', 14)} <span class="hide-mobile">I-install</span>
         </button>
         <button class="button ghost small" id="admin-refresh-btn" title="Refresh data">
-          ${icon('refresh-cw', 14)} Sync
+          ${icon('refresh-cw', 14)} <span class="hide-mobile">Sync</span>
         </button>
-        <button class="button soft small" id="admin-to-student">
-          ${icon('external-link', 14)} Student View
+        <button class="button soft small" id="admin-to-student" title="Student View">
+          ${icon('external-link', 14)} <span class="hide-mobile">Student View</span>
         </button>
       </div>
     </header>
