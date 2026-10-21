@@ -23,12 +23,18 @@ function db(): PDO {
             '/etc/ssl/certs/ca-certificates.crt', // Debian / Ubuntu in Docker
             '/etc/pki/tls/certs/ca-bundle.crt',
             '/etc/ssl/ca-bundle.pem',
+            'C:\\xampp\\apache\\bin\\curl-ca-bundle.crt', // Local Windows XAMPP
         ];
+        $found = false;
         foreach ($caPaths as $ca) {
             if (file_exists($ca)) {
                 $options[PDO::MYSQL_ATTR_SSL_CA] = $ca;
+                $found = true;
                 break;
             }
+        }
+        if (!$found) {
+            $options[PDO::MYSQL_ATTR_SSL_CA] = '/etc/ssl/certs/ca-certificates.crt';
         }
         $options[PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] = false;
     }
