@@ -326,11 +326,8 @@ function renderStudent() {
       </div>
 
       <div class="app-header-right">
-        <button class="button soft small pwa-install-btn" id="student-install-btn" style="display:none;" title="I-install ang App sa Phone">
-          ${icon('smartphone', 14)} <span class="hide-mobile">I-install App</span>
-        </button>
-        <button class="button ghost small" id="student-to-admin">
-          ${icon('shield-check', 15)} Staff Login
+        <button class="button ghost small" id="student-exit-btn" style="font-weight:700;">
+          ${icon('log-out', 15)} Exit
         </button>
       </div>
     </header>
@@ -460,13 +457,8 @@ function renderStudent() {
     };
   });
 
-  document.querySelector('#student-to-admin').onclick = login;
-  
-  const studentInstallBtn = root.querySelector('#student-install-btn');
-  if (studentInstallBtn) {
-    if (deferredPrompt) studentInstallBtn.style.display = 'inline-flex';
-    studentInstallBtn.onclick = triggerPwaInstall;
-  }
+  const studentExitBtn = document.querySelector('#student-exit-btn');
+  if (studentExitBtn) studentExitBtn.onclick = home;
 
   wireStudentSlots();
   updateIcons();
@@ -1137,14 +1129,8 @@ function adminShell(content, title) {
       </div>
 
       <div class="app-header-right">
-        <button class="button soft small pwa-install-btn" id="admin-install-btn" style="display:none;" title="I-install ang App sa Phone">
-          ${icon('smartphone', 14)} <span class="hide-mobile">I-install</span>
-        </button>
-        <button class="button ghost small" id="admin-refresh-btn" title="Refresh data">
-          ${icon('refresh-cw', 14)} <span class="hide-mobile">Sync</span>
-        </button>
-        <button class="button soft small" id="admin-to-student" title="Student View">
-          ${icon('external-link', 14)} <span class="hide-mobile">Student View</span>
+        <button class="button ghost small" id="admin-exit-btn" style="color:#ef4444; border-color:#fca5a5; font-weight:700;">
+          ${icon('log-out', 15)} Exit
         </button>
       </div>
     </header>
@@ -1175,14 +1161,11 @@ function adminShell(content, title) {
 
       <!-- Main Admin Content Area -->
       <main class="admin-main-viewport">
-        <div class="admin-top-bar" style="display:flex; justify-content:space-between; align-items:center;">
+        <div class="admin-top-bar">
           <div>
             <p class="eyebrow">ADMIN CONSOLE</p>
             <h1>${title}</h1>
           </div>
-          <button id="admin-mobile-logout" class="button ghost small hide-desktop" style="color:#ef4444; border-color:#fca5a5; font-size:12px; padding:6px 10px;" title="Sign out on mobile">
-            ${icon('log-out', 14)} Sign Out
-          </button>
         </div>
 
         ${content}
@@ -1198,29 +1181,10 @@ function adminShell(content, title) {
     };
   });
 
-  document.querySelector('#admin-logout').onclick = logout;
-  const mobileLogoutBtn = document.querySelector('#admin-mobile-logout');
-  if (mobileLogoutBtn) mobileLogoutBtn.onclick = logout;
-
-  const adminInstallBtn = root.querySelector('#admin-install-btn');
-  if (adminInstallBtn) {
-    if (deferredPrompt) adminInstallBtn.style.display = 'inline-flex';
-    adminInstallBtn.onclick = triggerPwaInstall;
-  }
-
-  document.querySelector('#admin-to-student').onclick = () => {
-    page = 'student';
-    renderStudent();
-  };
-
-  const refreshBtn = document.querySelector('#admin-refresh-btn');
-  if (refreshBtn) {
-    refreshBtn.onclick = async () => {
-      refreshBtn.querySelector('i')?.classList.add('spin');
-      await refresh(true);
-      refreshBtn.querySelector('i')?.classList.remove('spin');
-    };
-  }
+  const exitBtn = document.querySelector('#admin-exit-btn');
+  if (exitBtn) exitBtn.onclick = logout;
+  const desktopLogout = document.querySelector('#admin-logout');
+  if (desktopLogout) desktopLogout.onclick = logout;
 
   updateIcons();
 }

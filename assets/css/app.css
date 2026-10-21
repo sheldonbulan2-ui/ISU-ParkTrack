@@ -78,6 +78,9 @@ html, body {
   margin: 0;
   padding: 0;
   min-height: 100%;
+  overflow-x: hidden;
+  max-width: 100vw;
+  width: 100%;
 }
 
 body {
@@ -1625,6 +1628,10 @@ tbody tr:hover {
   .admin-bottom-card {
     display: none; /* Hide admin user box in mobile bottom bar */
   }
+
+  .toast {
+    bottom: 78px; /* Position toast safely above mobile bottom navigation */
+  }
 }
 
 @media (max-width: 640px) {
@@ -1634,10 +1641,14 @@ tbody tr:hover {
     -webkit-tap-highlight-color: transparent;
   }
 
+  [hidden], .notice[hidden] {
+    display: none !important;
+  }
+
   .app-header {
-    padding: 0 12px;
-    height: 58px;
-    min-height: 58px;
+    padding: 0 14px;
+    height: 60px;
+    min-height: 60px;
   }
 
   .app-header-left {
@@ -1647,35 +1658,65 @@ tbody tr:hover {
   }
 
   .brand {
-    gap: 8px;
+    gap: 10px;
     min-width: 0;
   }
 
   .brand-logo {
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
   }
 
   .brand-title {
-    font-size: 13.5px;
+    font-size: 14px;
+    font-weight: 800;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
   .brand-sub {
-    display: none; /* Hide subtitle completely on mobile so header is never cramped */
+    display: none !important; /* Hide subtitle completely on mobile so header is always a single clean line */
   }
 
   .app-header-right {
-    gap: 6px;
+    gap: 8px;
     flex-shrink: 0;
   }
 
   .app-header-right .button {
-    padding: 6px 10px;
-    font-size: 12px;
+    padding: 6px 14px;
+    font-size: 13px;
+    font-weight: 700;
     height: 34px;
+  }
+
+  .admin-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .stat-box {
+    padding: 12px 14px;
+    min-width: 0;
+  }
+
+  .stat-box h3 {
+    font-size: 11px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .stat-box strong {
+    font-size: 24px;
+  }
+
+  .admin-main-viewport {
+    padding: 14px 12px 80px;
+    min-width: 0;
+    overflow-x: hidden;
   }
 
   .role-grid {
