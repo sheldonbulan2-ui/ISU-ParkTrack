@@ -645,7 +645,6 @@ async function executeReserveSlot(slotId, slotNumber) {
 }
 
 async function cancelReservation(slotId, slotNumber) {
-  if (!confirm(`Sigurado ka bang nais mong kanselahin ang reserbasyon para sa Slot ${slotNumber}?`)) return;
   try {
     const res = await api('cancel-reservation', {
       method: 'POST',
@@ -653,7 +652,7 @@ async function cancelReservation(slotId, slotNumber) {
     });
     localStorage.removeItem('isu_my_reservation');
     toast(res.message || `Nakansela ang reserbasyon sa Slot ${slotNumber}.`);
-    refresh();
+    await refresh();
   } catch (err) {
     toast(err.message);
   }
@@ -683,7 +682,7 @@ function confirmClaimOrCancelRes(slotId, slotNumber) {
       </div>
     </div>
 
-    <div class="row" style="justify-content:flex-end; gap:10px; margin-top:20px;">
+    <div class="modal-actions-responsive">
       <button class="button ghost" id="modal-cancel-res-btn" style="color:#dc2626; border-color:#fca5a5;">
         ${icon('x', 15)} Kanselahin ang Reserbasyon
       </button>
@@ -727,7 +726,7 @@ function confirmStudentExit(slotId, slotNumber) {
       </div>
     </div>
 
-    <div class="row" style="justify-content:flex-end; gap:10px; margin-top:20px;">
+    <div class="modal-actions-responsive">
       <button class="button ghost" data-close>
         Cancel
       </button>
