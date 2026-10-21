@@ -326,6 +326,9 @@ function renderStudent() {
       </div>
 
       <div class="app-header-right">
+        <button class="button soft small pwa-install-btn" id="student-install-btn" style="display:none;" title="I-install ang App sa Phone">
+          ${icon('smartphone', 14)} <span class="hide-mobile">I-install App</span>
+        </button>
         <div class="live-badge">
           <span class="live-dot"></span>
           <span>Live Sync</span>
@@ -462,6 +465,13 @@ function renderStudent() {
   });
 
   document.querySelector('#student-to-admin').onclick = login;
+  
+  const studentInstallBtn = root.querySelector('#student-install-btn');
+  if (studentInstallBtn) {
+    if (deferredPrompt) studentInstallBtn.style.display = 'inline-flex';
+    studentInstallBtn.onclick = triggerPwaInstall;
+  }
+
   wireStudentSlots();
   updateIcons();
 }
@@ -1132,6 +1142,9 @@ function adminShell(content, title) {
       </div>
 
       <div class="app-header-right">
+        <button class="button soft small pwa-install-btn" id="admin-install-btn" style="display:none;" title="I-install ang App sa Phone">
+          ${icon('smartphone', 14)} <span class="hide-mobile">I-install App</span>
+        </button>
         <button class="button ghost small" id="admin-refresh-btn" title="Refresh data">
           ${icon('refresh-cw', 14)} Sync
         </button>
@@ -1143,7 +1156,7 @@ function adminShell(content, title) {
 
     <!-- Admin Shell Layout -->
     <div class="admin-shell">
-      <!-- Fixed Sidebar -->
+      <!-- Fixed Sidebar (Desktop) / Bottom Nav Bar (Mobile) -->
       <aside class="admin-sidebar">
         <nav class="admin-nav">
           ${adminTabs.map(([key, ic, lbl]) => `
@@ -1167,11 +1180,14 @@ function adminShell(content, title) {
 
       <!-- Main Admin Content Area -->
       <main class="admin-main-viewport">
-        <div class="admin-top-bar">
+        <div class="admin-top-bar" style="display:flex; justify-content:space-between; align-items:center;">
           <div>
             <p class="eyebrow">ADMIN CONSOLE</p>
             <h1>${title}</h1>
           </div>
+          <button id="admin-mobile-logout" class="button ghost small hide-desktop" style="color:#ef4444; border-color:#fca5a5; font-size:12px; padding:6px 10px;" title="Sign out on mobile">
+            ${icon('log-out', 14)} Sign Out
+          </button>
         </div>
 
         ${content}
@@ -1188,6 +1204,15 @@ function adminShell(content, title) {
   });
 
   document.querySelector('#admin-logout').onclick = logout;
+  const mobileLogoutBtn = document.querySelector('#admin-mobile-logout');
+  if (mobileLogoutBtn) mobileLogoutBtn.onclick = logout;
+
+  const adminInstallBtn = root.querySelector('#admin-install-btn');
+  if (adminInstallBtn) {
+    if (deferredPrompt) adminInstallBtn.style.display = 'inline-flex';
+    adminInstallBtn.onclick = triggerPwaInstall;
+  }
+
   document.querySelector('#admin-to-student').onclick = () => {
     page = 'student';
     renderStudent();
@@ -2225,6 +2250,65 @@ async function init() {
     home();
     setTimeout(refresh, 500);
   }
+}
+
+// --------------------------------------------------------------------------
+// 8. PROGRESSIVE WEB APP (PWA) INSTALLATION FOR ANDROID PHONES
+// --------------------------------------------------------------------------
+let deferredPrompt = null;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+
+  const banner = document.getElementById('pwa-install-banner');
+  if (banner && !sessionStorage.getItem('isu_pwa_dismissed')) {
+    banner.style.display = 'flex';
+  }
+
+  document.querySelectorAll('.pwa-install-btn').forEach(b => {
+    b.style.display = 'inline-flex';
+  });
+});
+
+window.addEventListener('appinstalled', () => {
+  const banner = document.getElementById('pwa-install-banner');
+  if (banner) banner.style.display = 'none';
+  document.querySelectorAll('.pwa-install-btn').forEach(b => {
+    b.style.display = 'none';
+  });
+  deferredPrompt = null;
+  toast('ISU Parking App is successfully installed!');
+});
+
+function triggerPwaInstall() {
+  if (deferredPrompt) {
+    const banner = document.getElementById('pwa-install-banner');
+    if (banner) banner.style.display = 'none';
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(choiceResult => {
+      if (choiceResult.outcome === 'accepted') {
+        toast('Salamat! Ini-install na ang ISU Parking App sa iyong phone.');
+      }
+      deferredPrompt = null;
+    });
+  } else {
+    toast('Para i-install: Pindutin ang menu (⋮) sa Chrome/browser at piliin ang "Install app" o "Add to Home screen".');
+  }
+}
+
+const pwaInstallAction = document.getElementById('pwa-install-action');
+if (pwaInstallAction) {
+  pwaInstallAction.onclick = triggerPwaInstall;
+}
+
+const pwaCloseAction = document.getElementById('pwa-close-action');
+if (pwaCloseAction) {
+  pwaCloseAction.onclick = () => {
+    const banner = document.getElementById('pwa-install-banner');
+    if (banner) banner.style.display = 'none';
+    sessionStorage.setItem('isu_pwa_dismissed', '1');
+  };
 }
 
 window.addEventListener('beforeunload', stopCamera);

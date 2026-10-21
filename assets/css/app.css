@@ -1427,35 +1427,304 @@ tbody tr:hover {
 }
 
 /* --------------------------------------------------------------------------
-   RESPONSIVE DESIGN
+   PWA INSTALL BANNER & PROMPTS
+   -------------------------------------------------------------------------- */
+.pwa-banner {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 24px);
+  max-width: 440px;
+  background: #092c1c;
+  color: #ffffff;
+  padding: 12px 14px;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.4), 0 10px 10px rgba(0, 0, 0, 0.25);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 100;
+  border: 1.5px solid rgba(74, 222, 128, 0.3);
+  animation: slideUpPwa 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.pwa-banner-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  flex-shrink: 0;
+  background: #ffffff;
+  padding: 2px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.pwa-banner-text {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.pwa-banner-text strong {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #f0fdf4;
+}
+
+.pwa-banner-text small {
+  font-size: 11px;
+  color: #86efac;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pwa-banner-close {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 22px;
+  cursor: pointer;
+  padding: 4px 6px;
+  line-height: 1;
+  transition: color 0.15s ease;
+}
+
+.pwa-banner-close:hover {
+  color: #ffffff;
+}
+
+@keyframes slideUpPwa {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 25px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+/* Utility classes for responsive displays */
+@media (min-width: 961px) {
+  .hide-desktop {
+    display: none !important;
+  }
+}
+@media (max-width: 960px) {
+  .hide-mobile {
+    display: none !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   RESPONSIVE DESIGN (ALL ANDROID PHONES & TABLETS)
    -------------------------------------------------------------------------- */
 @media (max-width: 960px) {
   .app-container {
     grid-template-columns: 1fr;
-    padding: 16px;
+    padding: 14px 12px;
+    gap: 16px;
   }
+
   .app-sidebar-panel {
     position: static;
   }
+
   .admin-shell {
     grid-template-columns: 1fr;
+    padding-bottom: 72px; /* Space for mobile bottom navigation */
   }
+
+  /* Transform Admin Sidebar into Native Mobile Bottom Navigation Bar */
   .admin-sidebar {
-    display: none; /* Mobile will use a top or bottom tab bar */
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    height: 64px;
+    padding: 4px 6px env(safe-area-inset-bottom, 4px) 6px;
+    background: #092c1c;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    border-right: none;
+    flex-direction: row;
+    box-shadow: 0 -4px 18px rgba(0, 0, 0, 0.35);
+  }
+
+  .admin-nav {
+    flex-direction: row;
+    justify-content: space-around;
+    align-items: center;
+    width: 100%;
+    gap: 4px;
+  }
+
+  .admin-nav button {
+    flex-direction: column;
+    padding: 6px 2px;
+    gap: 3px;
+    font-size: 10.5px;
+    font-weight: 600;
+    flex: 1;
+    text-align: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    border-left: none;
+    color: #cbd5e1;
+    touch-action: manipulation;
+  }
+
+  .admin-nav button:hover {
+    transform: none;
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .admin-nav button.active {
+    background: rgba(34, 197, 94, 0.22);
+    color: #4ade80;
+    border-top: 2.5px solid #4ade80;
+    border-left: none;
+    box-shadow: none;
+  }
+
+  .admin-nav button i,
+  .admin-nav button svg {
+    width: 19px;
+    height: 19px;
+  }
+
+  .admin-bottom-card {
+    display: none; /* Hide admin user box in mobile bottom bar */
   }
 }
 
 @media (max-width: 640px) {
-  .app-header {
-    padding: 0 14px;
-    height: 58px;
+  /* Fast Android tap response without 300ms delay */
+  button, a, input, select {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
   }
+
+  .app-header {
+    padding: 0 12px;
+    height: 56px;
+  }
+
+  .brand-logo {
+    width: 34px;
+    height: 34px;
+  }
+
+  .brand div {
+    font-size: 13.5px;
+    line-height: 1.2;
+  }
+
+  .brand small {
+    font-size: 10px;
+  }
+
+  .app-header-right {
+    gap: 8px;
+  }
+
+  .live-badge {
+    padding: 3px 7px;
+    font-size: 10.5px;
+  }
+
   .role-grid {
     grid-template-columns: 1fr;
   }
+
+  /* Responsive Parking Map Canvas on Mobile */
   .parking-bay-grid {
-    grid-template-columns: repeat(3, minmax(70px, 1fr)) !important;
     gap: 8px;
-    padding: 12px;
+    padding: 12px 10px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    min-height: 300px;
+  }
+
+  .slot {
+    min-width: 72px;
+    min-height: 76px;
+    padding: 8px 4px;
+  }
+
+  .slot b {
+    font-size: 13px;
+  }
+
+  .slot small {
+    font-size: 9.5px;
+  }
+
+  .slot i,
+  .slot svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  /* Modern Android Bottom-Sheet Style Modals */
+  .modal-backdrop {
+    padding: 0;
+    align-items: flex-end; /* Sheets slide up from bottom of Android screen */
+  }
+
+  .modal {
+    width: 100%;
+    max-height: 88vh;
+    padding: 20px 16px env(safe-area-inset-bottom, 20px) 16px;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    border-top-left-radius: 22px;
+    border-top-right-radius: 22px;
+    box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.35);
+  }
+
+  .modal.wide {
+    width: 100%;
+  }
+
+  .modal-title h2 {
+    font-size: 17px;
+  }
+
+  .camera-box {
+    min-height: 220px;
+  }
+
+  /* Compact Admin tables on mobile */
+  .history-table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin: 0 -12px;
+    padding: 0 12px;
+  }
+
+  .history-table th,
+  .history-table td {
+    padding: 8px 6px;
+    font-size: 12px;
+  }
+}
+
+/* Extra small Android screens (e.g. 360px width phones) */
+@media (max-width: 400px) {
+  .brand small {
+    display: none; /* Hide subtitle to preserve header space */
+  }
+
+  .live-badge span:last-child {
+    display: none; /* Show only the pulsating green dot */
+  }
+
+  .slot {
+    min-width: 66px;
+    min-height: 72px;
   }
 }
